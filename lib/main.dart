@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'services/weather_service.dart'; // Make sure this import is correct
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -14,14 +17,28 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final WeatherService weatherService = WeatherService();
+  String selectedLocation = 'Seattle'; // Default location
+
+  // List of sample locations for the user to pick from
+  final List<String> locations = ['Seattle', 'Los Angeles', 'Sydney', 'Dubai', 'Rio de Janeiro'];
+  final TextEditingController emailController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     // Get screen width
     double screenWidth = MediaQuery.of(context).size.width;
 
     // Determine spacer flex values based on screen width
-    int sideFlex = screenWidth < 600 ? 1 : 3; // Smaller spacers for narrower screens
+    int sideFlex = screenWidth < 600 ? 1 : 3;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -40,18 +57,23 @@ class HomePage extends StatelessWidget {
                       // Location Badge
                       Padding(
                         padding: const EdgeInsets.only(top: 16.0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0, vertical: 8.0),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          child: const Text(
-                            'Seattle',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14.0,
+                        child: GestureDetector(
+                          onTap: () {
+                            _showLocationPicker(context);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0, vertical: 8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: Text(
+                              selectedLocation,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.0,
+                              ),
                             ),
                           ),
                         ),
@@ -64,8 +86,27 @@ class HomePage extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14.0,
                           color: Colors.black,
-                          fontWeight: FontWeight.bold
+                          fontWeight: FontWeight.bold,
                         ),
+                      ),
+
+                      // UV Index
+                      const SizedBox(height: 16.0),
+                      FutureBuilder<double?>(
+                        future: weatherService.fetchUVIndex(selectedLocation),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          } else if (snapshot.hasError) {
+                            return const Center(child: Text('Error fetching UV index'));
+                          } else {
+                            final uvIndex = snapshot.data;
+                            return Text(
+                              'UV Index: ${uvIndex ?? 'Unavailable'}',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            );
+                          }
+                        },
                       ),
 
                       // Main Message
@@ -105,16 +146,17 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16.0),
                       TextField(
+                        controller: emailController,
                         decoration: InputDecoration(
                           hintText: 'name@email.com',
-                          hintStyle: TextStyle(color: Colors.black38),
-                          border: UnderlineInputBorder(
+                          hintStyle: const TextStyle(color: Colors.black38),
+                          border: const UnderlineInputBorder(
                             borderSide: BorderSide(color: Colors.black, width: 1.0), // Black underline
                           ),
-                          enabledBorder: UnderlineInputBorder(
+                          enabledBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(color: Colors.black, width: 1.0), // Black underline when enabled
                           ),
-                          focusedBorder: UnderlineInputBorder(
+                          focusedBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(color: Colors.blue, width: 2.0), // Blue underline when focused
                           ),
                         ),
@@ -123,17 +165,22 @@ class HomePage extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            // Here you could handle the sign-up process (e.g., submit email)
+                            print('Email Submitted: ${emailController.text}');
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
-                              side: BorderSide(color: Colors.black, width: 1)
+                              side: const BorderSide(color: Colors.black, width: 1),
                             ),
-                            minimumSize: Size(0, 60),
+                            minimumSize: const Size(0, 60),
                           ),
-                          child: const Text('Sign up',
-                          style: TextStyle(color: Colors.black87)),
+                          child: const Text(
+                            'Sign up',
+                            style: TextStyle(color: Colors.black87),
+                          ),
                         ),
                       ),
                     ],
@@ -145,6 +192,32 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // Function to show the location picker (DropdownButton)
+  void _showLocationPicker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Location'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: locations.map((location) {
+              return ListTile(
+                title: Text(location),
+                onTap: () {
+                  setState(() {
+                    selectedLocation = location; // Update selected location
+                  });
+                  Navigator.pop(context); // Close dialog
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 }
