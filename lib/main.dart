@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Import the intl package for date formatting
 import 'services/weather_service.dart'; // Make sure this import is correct
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }
@@ -81,61 +82,121 @@ class _HomePageState extends State<HomePage> {
 
                       // Date and Light Condition
                       const SizedBox(height: 16.0),
-                      const Text(
-                        '26 November 2024  •  Limited Light',
-                        style: TextStyle(
+                      Text(
+                        _formatDate(DateTime.now()), // Format the current date
+                        style: const TextStyle(
                           fontSize: 14.0,
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
 
-                      // UV Index
-                      const SizedBox(height: 16.0),
-                      FutureBuilder<double?>(
-                        future: weatherService.fetchUVIndex(selectedLocation),
+                      // UV Index and Main Message
+                      const SizedBox(height: 24.0),
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: weatherService.fetchUVIndexAndTimeRange(selectedLocation),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return const Center(child: CircularProgressIndicator());
                           } else if (snapshot.hasError) {
-                            return const Center(child: Text('Error fetching UV index'));
+                            return const Center(child: Text('Error fetching UV index and time range'));
                           } else {
-                            final uvIndex = snapshot.data;
-                            return Text(
-                              'UV Index: ${uvIndex ?? 'Unavailable'}',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            final uvIndex = snapshot.data?['current_uv'];
+                            final uvTimeRanges = snapshot.data?['uv_time_ranges'];
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      // TextSpan(
+                                      //   text: 'UV Index: ${uvIndex?.toStringAsFixed(1) ?? 'Unavailable'}\n\n',
+                                      //   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      // ),
+                                      if (uvIndex == null) ...[
+                                        const TextSpan(
+                                          text: "UV data is unavailable. Stay cautious.\n",
+                                          style: TextStyle(fontSize: 16.0),
+                                        ),
+                                      ] else if (uvIndex < 3) ...[
+                                        const TextSpan(
+                                          text: "It’s ",
+                                          style: TextStyle(fontSize: 36, fontWeight: FontWeight.normal),
+                                        ),
+                                        const TextSpan(
+                                          text: "very important ",
+                                          style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                                        ),
+                                        const TextSpan(
+                                          text: "to ",
+                                          style: TextStyle(fontSize: 36, fontWeight: FontWeight.normal),
+                                        ),
+                                        const TextSpan(
+                                          text: "go outside and get natural light \n",
+                                          style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                                        ),
+                                      ] else if (uvIndex >= 3 && uvIndex < 6) ...[
+                                        const TextSpan(
+                                          text: "Moderate UV index. ",
+                                          style: TextStyle(fontSize: 36.0),
+                                        ),
+                                        const TextSpan(
+                                          text: "All good, ",
+                                          style: TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold),
+                                        ),
+                                        const TextSpan(
+                                          text: "go outside and enjoy the day!\n",
+                                          style: TextStyle(fontSize: 36.0),
+                                        ),
+                                      ] else if (uvIndex >= 6 && uvIndex < 8) ...[
+                                        const TextSpan(
+                                          text: "High UV index! ",
+                                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                                        ),
+                                        const TextSpan(
+                                          text: "Limit your time outdoors and wear strong sun protection.\n",
+                                          style: TextStyle(fontSize: 16.0),
+                                        ),
+                                      ] else ...[
+                                        const TextSpan(
+                                          text: "Very high UV index! ",
+                                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                                        ),
+                                        const TextSpan(
+                                          text: "Avoid going outside if possible during peak hours.\n",
+                                          style: TextStyle(fontSize: 16.0),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                
+                                // Show time range for UV index above threshold
+                                const SizedBox(height: 1.0),
+                                if (uvTimeRanges?.isNotEmpty ?? false)
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // const Text(
+                                      //   'UV Index Above Threshold:',
+                                      //   style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                                      // ),
+                                      ...uvTimeRanges!.map((range) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(bottom: 8.0),
+                                          child: Text(
+                                            'from ${_formatTime(range['start_time'])} to ${_formatTime(range['end_time'])}',
+                                            style: const TextStyle(fontSize: 36.0),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ],
+                                  ),
+                              ],
                             );
                           }
                         },
-                      ),
-
-                      // Main Message
-                      const SizedBox(height: 24.0),
-                      const Text.rich(
-                        TextSpan(
-                          text: "It's ",
-                          style: TextStyle(fontSize: 42.0, color: Colors.black),
-                          children: [
-                            TextSpan(
-                              text: 'very important ',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'to ',
-                            ),
-                            TextSpan(
-                              text: 'go outside and get natural light\n',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'from 11:00 AM - 2:00 PM.',
-                            ),
-                          ],
-                        ),
                       ),
 
                       // Email Input and Signup Button
@@ -166,7 +227,7 @@ class _HomePageState extends State<HomePage> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            // Here you could handle the sign-up process (e.g., submit email)
+                            // Handle sign-up process (e.g., submit email)
                             print('Email Submitted: ${emailController.text}');
                           },
                           style: ElevatedButton.styleFrom(
@@ -178,8 +239,8 @@ class _HomePageState extends State<HomePage> {
                             minimumSize: const Size(0, 60),
                           ),
                           child: const Text(
-                            'Sign up',
-                            style: TextStyle(color: Colors.black87),
+                            'SIGN UP NOW',
+                            style: TextStyle(color: Colors.black, fontSize: 16.0),
                           ),
                         ),
                       ),
@@ -195,26 +256,38 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Function to show the location picker (DropdownButton)
+  // Function to format date to 'hh:MM a' format
+  String _formatDate(DateTime dateTime) {
+    return DateFormat('d MMMM yyyy').format(dateTime);  // Format as 26 November 2024
+  }
+
+  // Function to format time to 'hh:MM a' format
+  String _formatTime(String time) {
+    DateTime parsedTime = DateTime.parse(time);
+    return DateFormat('hh:mm a').format(parsedTime); // Format to 12-hour with AM/PM
+  }
+
+  // Function to show location picker dialog
   void _showLocationPicker(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Select Location'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: locations.map((location) {
-              return ListTile(
-                title: Text(location),
-                onTap: () {
-                  setState(() {
-                    selectedLocation = location; // Update selected location
-                  });
-                  Navigator.pop(context); // Close dialog
-                },
-              );
-            }).toList(),
+          title: const Text('Choose a location'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: locations.map((location) {
+                return ListTile(
+                  title: Text(location),
+                  onTap: () {
+                    setState(() {
+                      selectedLocation = location;
+                    });
+                    Navigator.pop(context); // Close dialog
+                  },
+                );
+              }).toList(),
+            ),
           ),
         );
       },
