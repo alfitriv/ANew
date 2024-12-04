@@ -82,14 +82,45 @@ class _HomePageState extends State<HomePage> {
 
                       // Date and Light Condition
                       const SizedBox(height: 16.0),
-                      Text(
-                        _formatDate(DateTime.now()), // Format the current date
-                        style: const TextStyle(
-                          fontSize: 14.0,
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: weatherService.fetchUVIndexAndTimeRange(selectedLocation),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          } else if (snapshot.hasError) {
+                            return const Center(child: Text('Error fetching UV index'));
+                          } else if (snapshot.hasData) {
+                            final data = snapshot.data!;
+                            final uvIndex = data['uvIndex'] as double?;
+                            final lightCondition = (uvIndex != null && uvIndex < 3) ? "Limited Light" : "Normal Light";
+
+                            return Row(
+                              children: [
+                                Text(
+                                  _formatDate(DateTime.now()), // Format the current date
+                                  style: const TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8.0),
+                                Text(
+                                  '| $lightCondition',
+                                  style: const TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return const Center(child: Text('No data available'));
+                          }
+                        },
                       ),
+
 
                       // UV Index and Main Message
                       const SizedBox(height: 24.0),
