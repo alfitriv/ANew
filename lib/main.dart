@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
 import 'services/weather_service.dart'; // Make sure this import is correct
+import 'package:firebase_core/firebase_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
+  Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -257,10 +260,11 @@ class _HomePageState extends State<HomePage> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // Handle sign-up process (e.g., submit email)
-                            print('Email Submitted: ${emailController.text}');
-                          },
+                          // onPressed: ()  {
+                          //   // Handle sign-up process (e.g., submit email)
+                          //   print('Email Submitted: ${emailController.text}');
+                          // },
+                          onPressed: () => _launchURLWithPrefill(emailController.text),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
@@ -323,5 +327,18 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  // Function to launch the URL with the email field value
+  Future<void> _launchURLWithPrefill(String email) async {
+    String googleFormUrl =
+        'https://docs.google.com/forms/d/e/1FAIpQLSdq1jpYqJdtaG-Or5S3Le6BmF3bTf7Lcu9_PjiC0YmktvCrXg/viewform?usp=pp_url&entry.700191514=$email'; // Replace with your Google Form URL
+     // Replace `entry.1234567890` with the actual field ID
+
+    if (await canLaunch(googleFormUrl)) {
+      await launch(googleFormUrl);
+    } else {
+      throw 'Could not launch $googleFormUrl';
+    }
   }
 }
