@@ -109,7 +109,7 @@ class _HomePageState extends State<HomePage> {
                                   '| $lightCondition',
                                   style: const TextStyle(
                                     fontSize: 14.0,
-                                    color: Colors.black54,
+                                    color: Colors.black,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
